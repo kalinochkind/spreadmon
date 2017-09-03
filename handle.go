@@ -10,6 +10,11 @@ import (
 var state = make(map[int64]map[string]string)
 var MENU_KB = []string{"Add", "List", "Delete"}
 
+const HELP_STR = `Add: add a new cell
+List: see all your cells
+Delete: delete a cell
+`
+
 func makeKeyboard(kb []string) interface{} {
 	if len(kb) == 0 {
 		return tgbotapi.ReplyKeyboardHide{}
@@ -51,6 +56,14 @@ func handle(id int64, message string) tgbotapi.MessageConfig {
 	if !ok {
 		state[id] = make(map[string]string)
 		ustate = state[id]
+	}
+	if message == "/start" {
+		ustate["name"] = ""
+		return makeMessage(id, "Hello!", MENU_KB)
+	}
+	if message == "/help" {
+		ustate["name"] = ""
+		return makeMessage(id, HELP_STR, MENU_KB)
 	}
 	if message == "Cancel" {
 		ustate["name"] = ""
