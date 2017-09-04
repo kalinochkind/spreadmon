@@ -141,6 +141,7 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 		}
 		for _, num := range ints {
 			deleteRecord(id, names[num-1])
+			deleteCellVal(id, names[num-1])
 		}
 		ustate["name"] = ""
 		return makeMessage(id, "Deleted!", MENU_KB)
