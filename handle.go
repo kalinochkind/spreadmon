@@ -93,7 +93,8 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 			ustate["name"] = "delete"
 			data, _ := json.Marshal(names)
 			ustate["record-names"] = string(data)
-			return makeMessage(id, formatRecordList(id, names, values)+"\nWhat cell do you want to delete? Enter its number", []string{"Cancel"})
+			return makeMessage(id, formatRecordList(id, names, values)+"\nWhich cells do you want to delete?\n" +
+				"Enter their numbers separated by commas or spaces", []string{"Cancel"})
 		default:
 			return makeMessage(id, "Wat?", MENU_KB)
 		}
@@ -125,12 +126,22 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 		return nil
 	case "delete":
 		message = strings.Trim(message, " ")
-		num, err := strconv.ParseInt(message, 10, 64)
+		numbers := strings.Split(strings.Replace(message, ",", " ", -1), " ")
+		ints := make([]int64, 0)
 		names := parseList(ustate["record-names"])
-		if err != nil || num <= 0 || num > int64(len(names)) {
-			return makeMessage(id, "Bad number, try again", []string{"Cancel"})
+		for _, val := range numbers {
+			if val == "" {
+				continue
+			}
+			res, err := strconv.ParseInt(val, 10, 64)
+			if err != nil || res <= 0 || res > int64(len(names)) {
+				return makeMessage(id, "Bad number, try again", []string{"Cancel"})
+			}
+			ints = append(ints, res)
 		}
-		deleteRecord(id, names[num-1])
+		for _, num := range ints {
+			deleteRecord(id, names[num-1])
+		}
 		ustate["name"] = ""
 		return makeMessage(id, "Deleted!", MENU_KB)
 	}
