@@ -7,10 +7,11 @@ import (
 	"fmt"
 )
 
-var messageChan = make(chan tgbotapi.MessageConfig, 5)
+var messageChan = make(chan *tgbotapi.MessageConfig, 5)
 
 func notifyUser(id int64, message string) {
-	messageChan <- tgbotapi.NewMessage(id, message)
+	m := tgbotapi.NewMessage(id, message)
+	messageChan <- &m
 }
 
 func monitor() {
@@ -38,7 +39,9 @@ func monitor() {
 
 func sender(bot *tgbotapi.BotAPI) {
 	for m := range messageChan {
-		bot.Send(m)
+		if m != nil {
+			bot.Send(m)
+		}
 	}
 }
 

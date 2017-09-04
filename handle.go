@@ -26,11 +26,11 @@ func makeKeyboard(kb []string) interface{} {
 	return res
 }
 
-func makeMessage(id int64, text string, kb []string) tgbotapi.MessageConfig {
+func makeMessage(id int64, text string, kb []string) *tgbotapi.MessageConfig {
 	msg := tgbotapi.NewMessage(id, text)
 	msg.ReplyMarkup = makeKeyboard(kb)
 	msg.DisableWebPagePreview = true
-	return msg
+	return &msg
 }
 
 func formatRecordList(uid int64, names []string, values []string) string {
@@ -49,7 +49,16 @@ func formatRecordList(uid int64, names []string, values []string) string {
 	return res
 }
 
-func handle(id int64, message string) tgbotapi.MessageConfig {
+func sendInitialValue(uid int64, record []string) {
+	var val string
+	cellval, err := extractCellValue(getTable(record[0]), record[1], record[3], record[2])
+	if err == nil {
+		val = "\nInitial value: '" + cellval + "'"
+	}
+	messageChan <- makeMessage(uid, "New cell added!"+val, MENU_KB)
+}
+
+func handle(id int64, message string) *tgbotapi.MessageConfig {
 	ustate, ok := state[id]
 	if !ok {
 		state[id] = make(map[string]string)
@@ -110,9 +119,10 @@ func handle(id int64, message string) tgbotapi.MessageConfig {
 			return makeMessage(id, "This name is already used, try again", []string{"Cancel"})
 		}
 		deleteCellVal(id, message)
+		go sendInitialValue(id, parseList(ustate["record"]))
 		addRecord(id, message, ustate["record"])
 		ustate["name"] = ""
-		return makeMessage(id, "New cell added!", MENU_KB)
+		return nil
 	case "delete":
 		message = strings.Trim(message, " ")
 		num, err := strconv.ParseInt(message, 10, 64)
