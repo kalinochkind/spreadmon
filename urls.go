@@ -7,7 +7,8 @@ import (
 	"io/ioutil"
 )
 
-var URL_RE, _ = regexp.Compile(`https?://docs.google.com/spreadsheets/(.*)/edit#gid=(\d*)&range=([A-Z]+)(\d+)`)
+var URL_RE, _ = regexp.Compile(`https?://docs.google.com/spreadsheets/(.*)/(?:edit|htmlview)#?(?:gid=(\d*)(?:&range=([A-Z]+)(\d+))?)?$`)
+var CELL_RE, _ = regexp.Compile(`^([A-Z]+)(\d+)$`)
 
 func parseURL(url string) []string {
 	res := URL_RE.FindStringSubmatch(url)

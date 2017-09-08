@@ -101,7 +101,7 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 	case "add":
 		message = strings.Trim(message, " ")
 		parsed := parseURL(message)
-		if len(parsed) != 4 {
+		if len(parsed) != 4 || parsed[1] == "" {
 			return makeMessage(id, "Invalid url, try again.", []string{"Cancel"})
 		}
 		data, err := json.Marshal(parsed)
@@ -109,6 +109,23 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 			return makeMessage(id, "Something went wrong", []string{"Cancel"})
 		}
 		ustate["record"] = string(data)
+		if parsed[2] == "" {
+			ustate["name"] = "add-cell"
+			return makeMessage(id, "What cell do you want to monitor?\nExample: A1", []string{"Cancel"})
+		}
+		ustate["name"] = "add-name"
+		return makeMessage(id, "Enter the name for this cell", []string{"Cancel"})
+	case "add-cell":
+		message = strings.Trim(message, " ")
+		parsed := CELL_RE.FindStringSubmatch(message)
+		if len(parsed) != 3 {
+			return makeMessage(id, "Invalid cell, try again.", []string{"Cancel"})
+		}
+		data := parseList(ustate["record"])
+		data[2] = parsed[1]
+		data[3] = parsed[2]
+		cdata, _ := json.Marshal(data)
+		ustate["record"] = string(cdata)
 		ustate["name"] = "add-name"
 		return makeMessage(id, "Enter the name for this cell", []string{"Cancel"})
 	case "add-name":
