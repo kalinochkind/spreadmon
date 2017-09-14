@@ -58,6 +58,24 @@ func sendInitialValue(uid int64, record []string) {
 	messageChan <- makeMessage(uid, "New cell added!"+val, MENU_KB)
 }
 
+func sendPageList(uid int64, name string) {
+	names, gids := getPageList(getTable(name))
+	if len(names) == 1 {
+		data := parseList(state[uid]["record"])
+		data[1] = gids[0]
+		cdata, _ := json.Marshal(data)
+		state[uid]["record"] = string(cdata)
+		state[uid]["name"] = "add-cell"
+		messageChan <- makeMessage(uid, "What cell do you want to monitor?\nExample: A1", []string{"Cancel"})
+		return
+	}
+	msg := "Send the number of the tab. Available tabs:\n"
+	for i, name := range names {
+		msg += "\n" + strconv.Itoa(i + 1) + ". " + name
+	}
+	messageChan <- makeMessage(uid, msg, []string{"Cancel"})
+}
+
 func handle(id int64, message string) *tgbotapi.MessageConfig {
 	ustate, ok := state[id]
 	if !ok {
@@ -81,7 +99,8 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 		switch message {
 		case MENU_KB[0]:
 			ustate["name"] = "add"
-			return makeMessage(id, "Enter the cell URL. You can get it by right-clicking the cell and copying the link to it.", []string{"Cancel"})
+			return makeMessage(id, "Enter the cell URL. You can get it by right-clicking the cell and copying the link to it. " +
+				"You may also just paste the table URL here and select the cell later.", []string{"Cancel"})
 		case MENU_KB[1]:
 			names, values := recordList(id)
 			return makeMessage(id, formatRecordList(id, names, values), MENU_KB)
@@ -101,7 +120,7 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 	case "add":
 		message = strings.Trim(message, " ")
 		parsed := parseURL(message)
-		if len(parsed) != 4 || parsed[1] == "" {
+		if len(parsed) != 4 {
 			return makeMessage(id, "Invalid url, try again.", []string{"Cancel"})
 		}
 		data, err := json.Marshal(parsed)
@@ -110,13 +129,30 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 		}
 		ustate["record"] = string(data)
 		if parsed[2] == "" {
-			ustate["name"] = "add-cell"
-			return makeMessage(id, "What cell do you want to monitor?\nExample: A1", []string{"Cancel"})
+			ustate["name"] = "add-page"
+			go sendPageList(id, parsed[0])
+			return nil
 		}
 		ustate["name"] = "add-name"
 		return makeMessage(id, "Enter the name for this cell", []string{"Cancel"})
-	case "add-cell":
+	case "add-page":
 		message = strings.Trim(message, " ")
+		number, err := strconv.ParseInt(message, 10, 64)
+		if err != nil || number < 0 {
+			return makeMessage(id, "Bad number, try again", []string{"Cancel"})
+		}
+		data := parseList(ustate["record"])
+		_, gids := getPageList(getTable(data[0]))
+		if number > int64(len(gids)) {
+			return makeMessage(id, "Bad number, try again", []string{"Cancel"})
+		}
+		data[1] = gids[number - 1]
+		cdata, _ := json.Marshal(data)
+		ustate["record"] = string(cdata)
+		ustate["name"] = "add-cell"
+		return makeMessage(id, "What cell do you want to monitor?\nExample: A1", []string{"Cancel"})
+	case "add-cell":
+		message = strings.ToUpper(strings.Trim(message, " "))
 		parsed := CELL_RE.FindStringSubmatch(message)
 		if len(parsed) != 3 {
 			return makeMessage(id, "Invalid cell, try again.", []string{"Cancel"})

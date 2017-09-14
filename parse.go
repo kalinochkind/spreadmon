@@ -35,6 +35,31 @@ func getGid(n *html.Node, gid string) *html.Node {
 	return nil
 }
 
+func getPageList(data string) (names []string, gids []string) {
+	doc, err := html.Parse(strings.NewReader(data))
+	if err != nil {
+		println(err.Error())
+		return nil, nil
+	}
+	doc = doc.LastChild.LastChild.FirstChild
+	if doc.FirstChild == doc.LastChild {
+		doc = doc.NextSibling.FirstChild
+		names = append(names, "")
+		gids = append(gids, getAttr(doc, "id"))
+		return
+	}
+	for i := doc.LastChild.FirstChild; i != nil; i = i.NextSibling {
+		if i.Type == html.ElementNode && i.Data == "li" {
+			val := getAttr(i, "id")
+			if strings.HasPrefix(val, "sheet-button-") {
+				gids = append(gids, strings.Split(val,"-")[2])
+				names = append(names, i.FirstChild.FirstChild.Data)
+			}
+		}
+	}
+	return
+}
+
 func getText(n *html.Node) string {
 	if n.Type == html.TextNode {
 		return n.Data
