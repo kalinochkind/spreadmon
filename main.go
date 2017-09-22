@@ -25,7 +25,7 @@ func monitor() {
 				cellval, err := extractCellValue(getTable(data[0]), data[1], data[3], data[2])
 				if err != nil {
 					println(err.Error())
-					continue
+					cellval = ""
 				}
 				old := updateCellVal(u, names[i], cellval)
 				println(names[i], cellval)
