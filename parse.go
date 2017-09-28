@@ -36,6 +36,9 @@ func getGid(n *html.Node, gid string) *html.Node {
 }
 
 func getPageList(data string) (names []string, gids []string) {
+	if data == "" {
+		return nil, nil
+	}
 	doc, err := html.Parse(strings.NewReader(data))
 	if err != nil {
 		println(err.Error())
@@ -100,6 +103,9 @@ func calcHOffset(n *html.Node, col string) int {
 }
 
 func extractCellValue(data string, gid string, row string, col string) (string, error) {
+	defer func() {
+		recover()
+	}()
 	doc, err := html.Parse(strings.NewReader(data))
 	if err != nil {
 		println(err.Error())

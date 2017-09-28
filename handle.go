@@ -60,6 +60,11 @@ func sendInitialValue(uid int64, record []string) {
 
 func sendPageList(uid int64, name string) {
 	names, gids := getPageList(getTable(name))
+	if names == nil {
+		state[uid]["name"] = "add"
+		messageChan <- makeMessage(uid, "Invalid table, try again", []string{"Cancel"})
+		return
+	}
 	if len(names) == 1 {
 		data := parseList(state[uid]["record"])
 		data[1] = gids[0]
