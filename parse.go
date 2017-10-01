@@ -85,21 +85,22 @@ func calcVOffset(n *html.Node, row string) int {
 			return res;
 		}
 	}
-	return -1
+	t, _ := strconv.ParseInt(row, 10, 64)
+	return int(t)
 }
 
 func calcHOffset(n *html.Node, col string) int {
 	res := 0
-	for th := n.FirstChild.FirstChild.FirstChild.NextSibling; th != nil; th = th.NextSibling {
+	for th := n.FirstChild.FirstChild.FirstChild; th != nil; th = th.NextSibling {
 		if getAttr(th, "style") == "" {
 			continue
 		}
 		res++
-		if th.FirstChild.Data == col {
+		if th.FirstChild != nil && th.FirstChild.Data == col {
 			return res
 		}
 	}
-	return -1
+	return colToInt(col)
 }
 
 func extractCellValue(data string, gid string, row string, col string) (string, error) {
