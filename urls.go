@@ -30,7 +30,7 @@ func buildEditURL(data []string) string {
 		return ""
 	}
 	if strings.HasSuffix(data[0], "/pubhtml") {
-		return "https://docs.google.com/spreadsheets/" + data[0]
+		return "https://docs.google.com/spreadsheets/" + data[0] + " gid=" + data[1] + " range=" + data[2] + data[3]
 	}
 	return "https://docs.google.com/spreadsheets/" + data[0] + "/edit#gid=" + data[1] + "&range=" + data[2] + data[3]
 }
