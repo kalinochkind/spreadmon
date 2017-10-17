@@ -8,7 +8,7 @@ import (
 )
 
 var state = make(map[int64]map[string]string)
-var MENU_KB = []string{"Add a cell", "List all cells", "Delete a cell"}
+var MENU_KB = []string{"Add a cell", "List all cells"}
 
 const HELP_STR = `You can add cells here. I will check them about once a minute, and if the cell value changes, I will notify you.
 `
@@ -26,6 +26,15 @@ func makeKeyboard(kb []string) interface{} {
 	return res
 }
 
+func makeInlineKeyboard(kb []string) interface{} {
+	buttons := make([]tgbotapi.InlineKeyboardButton, len(kb))
+	for i, s := range kb {
+		buttons[i] = tgbotapi.NewInlineKeyboardButtonData(s, s)
+	}
+	res := tgbotapi.NewInlineKeyboardMarkup(buttons)
+	return res
+}
+
 func makeMessage(id int64, text string, kb []string) *tgbotapi.MessageConfig {
 	msg := tgbotapi.NewMessage(id, text)
 	msg.ReplyMarkup = makeKeyboard(kb)
@@ -33,18 +42,25 @@ func makeMessage(id int64, text string, kb []string) *tgbotapi.MessageConfig {
 	return &msg
 }
 
-func formatRecordList(uid int64, names []string, values []string) string {
-	if len(names) == 0 {
+func makeMessageInline(id int64, text string, kb []string) *tgbotapi.MessageConfig {
+	msg := tgbotapi.NewMessage(id, text)
+	msg.ReplyMarkup = makeInlineKeyboard(kb)
+	msg.DisableWebPagePreview = true
+	return &msg
+}
+
+func formatRecordList(uid int64, pairs StringPairs) string {
+	if len(pairs) == 0 {
 		return "You have no cells yet"
 	}
 	res := "Your cells:\n\n"
-	for i := range names {
-		res += strconv.Itoa(i+1) + ". " + names[i]
-		val, ok := getCellVal(uid, names[i])
+	for i, v := range pairs {
+		res += strconv.Itoa(i+1) + ". " + v.Name
+		val, ok := getCellVal(uid, v.Name)
 		if ok {
 			res += " (value: '" + val + "')"
 		}
-		res += "\n" + buildEditURL(parseList(values[i])) + "\n\n"
+		res += "\n" + buildEditURL(parseList(v.Value)) + "\n\n"
 	}
 	return res
 }
@@ -107,18 +123,8 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 			return makeMessage(id, "Enter the cell URL. You can get it by right-clicking the cell and copying the link to it. " +
 				"You may also just paste the table URL here and select the cell later.", []string{"Cancel"})
 		case MENU_KB[1]:
-			names, values := recordList(id)
-			return makeMessage(id, formatRecordList(id, names, values), MENU_KB)
-		case MENU_KB[2]:
-			names, values := recordList(id)
-			if len(names) == 0 {
-				return makeMessage(id, "You have no cells yet", MENU_KB)
-			}
-			ustate["name"] = "delete"
-			data, _ := json.Marshal(names)
-			ustate["record-names"] = string(data)
-			return makeMessage(id, formatRecordList(id, names, values)+"\nWhich cells do you want to delete?\n" +
-				"Enter their numbers separated by commas or spaces", []string{"Cancel"})
+			pairs := recordList(id)
+			return makeMessageInline(id, formatRecordList(id, pairs), []string{"Delete"})
 		default:
 			return makeMessage(id, "Wat?", MENU_KB)
 		}
@@ -186,23 +192,42 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 		message = strings.Trim(message, " ")
 		numbers := strings.Split(strings.Replace(message, ",", " ", -1), " ")
 		ints := make([]int64, 0)
-		names := parseList(ustate["record-names"])
+		pairs := recordList(id)
 		for _, val := range numbers {
 			if val == "" {
 				continue
 			}
 			res, err := strconv.ParseInt(val, 10, 64)
-			if err != nil || res <= 0 || res > int64(len(names)) {
+			if err != nil || res <= 0 || res > int64(len(pairs)) {
 				return makeMessage(id, "Bad number, try again", []string{"Cancel"})
 			}
 			ints = append(ints, res)
 		}
 		for _, num := range ints {
-			deleteRecord(id, names[num-1])
-			deleteCellVal(id, names[num-1])
+			deleteRecord(id, pairs[num-1].Name)
+			deleteCellVal(id, pairs[num-1].Name)
 		}
 		ustate["name"] = ""
 		return makeMessage(id, "Deleted!", MENU_KB)
+	}
+	return makeMessage(id, "Not implemented yet", MENU_KB)
+}
+
+func handleCallback(id int64, data string) *tgbotapi.MessageConfig {
+	ustate, ok := state[id]
+	if !ok {
+		state[id] = make(map[string]string)
+		ustate = state[id]
+	}
+	if data == "Delete" {
+		pairs := recordList(id)
+		if len(pairs) == 0 {
+			ustate["name"] = ""
+			return makeMessage(id, "You have no cells yet", MENU_KB)
+		}
+		ustate["name"] = "delete"
+		return makeMessage(id, "Which cells do you want to delete?\n" +
+			"Enter their numbers separated by commas or spaces", []string{"Cancel"})
 	}
 	return makeMessage(id, "Not implemented yet", MENU_KB)
 }

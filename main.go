@@ -8,6 +8,7 @@ import (
 )
 
 var messageChan = make(chan *tgbotapi.MessageConfig, 5)
+var callbackChan = make(chan tgbotapi.CallbackConfig, 5)
 
 func notifyUser(id int64, message string) {
 	m := tgbotapi.NewMessage(id, message)
@@ -19,18 +20,18 @@ func monitor() {
 		ul := userList()
 		clearTableCache()
 		for _, u := range ul {
-			names, values := recordList(u)
-			for i, v := range values {
-				data := parseList(v)
+			pairs := recordList(u)
+			for _, v := range pairs {
+				data := parseList(v.Value)
 				cellval, err := extractCellValue(getTable(data[0]), data[1], data[3], data[2])
 				if err != nil {
 					println(err.Error())
 					cellval = ""
 				}
-				old := updateCellVal(u, names[i], cellval)
-				println(names[i], cellval)
+				old := updateCellVal(u, v.Name, cellval)
+				println(v.Name, cellval)
 				if old != cellval {
-					notifyUser(u, fmt.Sprintf("The cell %s has changed!\n'%s' -> '%s'", names[i], old, cellval))
+					notifyUser(u, fmt.Sprintf("The cell %s has changed!\n'%s' -> '%s'", v.Name, old, cellval))
 				}
 			}
 		}
@@ -38,9 +39,14 @@ func monitor() {
 }
 
 func sender(bot *tgbotapi.BotAPI) {
-	for m := range messageChan {
-		if m != nil {
-			bot.Send(m)
+	for ;; {
+		select {
+		case m := <-messageChan:
+			if m != nil {
+				bot.Send(m)
+			}
+		case m := <-callbackChan:
+			bot.AnswerCallbackQuery(m)
 		}
 	}
 }
@@ -62,6 +68,12 @@ func main() {
 	go sender(bot)
 
 	for update := range updates {
+		if update.CallbackQuery != nil {
+			log.Printf("[%s CALLBACK] %s", update.CallbackQuery.From.UserName, update.CallbackQuery.Data)
+			messageChan <- handleCallback(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Data)
+			callbackChan <- tgbotapi.NewCallback(update.CallbackQuery.ID, "")
+			continue
+		}
 		if update.Message == nil {
 			continue
 		}

@@ -6,9 +6,29 @@ import (
 	"encoding/json"
 	"sync"
 	"log"
+	"sort"
 )
 
 var database *redis.Client
+
+type StringPair struct {
+	Name string
+	Value string
+}
+
+type StringPairs []StringPair
+
+func (s StringPairs) Len() int {
+	return len(s)
+}
+
+func (s StringPairs) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s StringPairs) Less(i, j int) bool {
+	return s[i].Name < s[j].Name
+}
 
 func connect() {
 	database = redis.NewClient(&redis.Options{Addr: configMap["addr"], Password: configMap["passwd"], DB: 0})
@@ -33,14 +53,13 @@ func parseList(l string) []string {
 	return s
 }
 
-func recordList(uid int64) (names []string, values []string) {
-	names = make([]string, 0)
-	values = make([]string, 0)
+func recordList(uid int64) StringPairs {
+	res := make(StringPairs, 0)
 	for name, value := range database.HGetAll("records/" + strconv.FormatInt(uid, 10)).Val() {
-		names = append(names, name)
-		values = append(values, value)
+		res = append(res, StringPair{name, value})
 	}
-	return
+	sort.Sort(res)
+	return res
 }
 
 func deleteRecord(uid int64, name string) {
