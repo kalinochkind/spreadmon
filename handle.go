@@ -124,7 +124,7 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 				"You may also just paste the table URL here and select the cell later.", []string{"Cancel"})
 		case MENU_KB[1]:
 			pairs := recordList(id)
-			return makeMessageInline(id, formatRecordList(id, pairs), []string{"Delete"})
+			return makeMessageInline(id, formatRecordList(id, pairs), []string{"Edit", "Delete"})
 		default:
 			return makeMessage(id, "Wat?", MENU_KB)
 		}
@@ -209,6 +209,34 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 		}
 		ustate["name"] = ""
 		return makeMessage(id, "Deleted!", MENU_KB)
+	case "edit":
+		message = strings.Trim(message, " ")
+		pairs := recordList(id)
+		num, err := strconv.ParseInt(message, 10, 64)
+		if err != nil || num <= 0 || num > int64(len(pairs)) {
+			return makeMessage(id, "Bad number, try again", []string{"Cancel"})
+		}
+		ustate["record-name"] = pairs[num-1].Name
+		ustate["record"] = pairs[num-1].Value
+		ustate["name"] = "edit-cell"
+		currentCell := parseList(ustate["record"])[2] + parseList(ustate["record"])[3]
+		return makeMessage(id, "What cell do you want to monitor?\nCurrently: " + currentCell, []string{"Cancel"})
+	case "edit-cell":
+		message = strings.ToUpper(strings.Trim(message, " "))
+		parsed := CELL_RE.FindStringSubmatch(message)
+		if len(parsed) != 3 {
+			return makeMessage(id, "Invalid cell, try again.", []string{"Cancel"})
+		}
+		data := parseList(ustate["record"])
+		data[2] = parsed[1]
+		data[3] = parsed[2]
+		cdata, _ := json.Marshal(data)
+		deleteCellVal(id, ustate["record-name"])
+		go sendInitialValue(id, data)
+		deleteRecord(id, ustate["record-name"])
+		addRecord(id, ustate["record-name"], string(cdata))
+		ustate["name"] = ""
+		return nil
 	}
 	return makeMessage(id, "Not implemented yet", MENU_KB)
 }
@@ -228,6 +256,15 @@ func handleCallback(id int64, data string) *tgbotapi.MessageConfig {
 		ustate["name"] = "delete"
 		return makeMessage(id, "Which cells do you want to delete?\n" +
 			"Enter their numbers separated by commas or spaces", []string{"Cancel"})
+	}
+	if data == "Edit" {
+		pairs := recordList(id)
+		if len(pairs) == 0 {
+			ustate["name"] = ""
+			return makeMessage(id, "You have no cells yet", MENU_KB)
+		}
+		ustate["name"] = "edit"
+		return makeMessage(id, "Which cell do you want to edit? Enter its number", []string{"Cancel"})
 	}
 	return makeMessage(id, "Not implemented yet", MENU_KB)
 }
