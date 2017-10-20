@@ -8,8 +8,10 @@ import (
 	"strings"
 )
 
-var URL_RE, _ = regexp.Compile(`https?://docs.google.com/spreadsheets/(.*)/(?:edit|htmlview|(pubhtml))(?:\?[^#]*)?#?(?:gid=(\d*)(?:&range=([A-Z]+)(\d+))?)?$`)
-var CELL_RE, _ = regexp.Compile(`^([A-Z]+)(\d+)$`)
+var URL_RE, _ = regexp.Compile(`https?://docs.google.com/spreadsheets/(.*)/(?:edit|htmlview|(pubhtml))(?:\?[^#]*)?#?(?:gid=(\d*)(?:&range=([A-Z]+)(\d+)(?:\:([A-Z]+)(\d+))?)?)?$`)
+var CELL_RE, _ = regexp.Compile(`^([A-Z]+)(\d+)(?:\:([A-Z]+)(\d+))?$`)
+
+const DATA_LENGTH = 6
 
 func parseURL(url string) []string {
 	res := URL_RE.FindStringSubmatch(url)
@@ -19,6 +21,12 @@ func parseURL(url string) []string {
 			res[0] += "/pubhtml"
 		}
 		res = append(res[:1], res[2:]...)
+		if res[4] == "" {
+			res[4] = res[2]
+		}
+		if res[5] == "" {
+			res[5] = res[3]
+		}
 		return res
 	} else {
 		return nil
@@ -26,13 +34,13 @@ func parseURL(url string) []string {
 }
 
 func buildEditURL(data []string) string {
-	if len(data) != 4 {
+	if len(data) != DATA_LENGTH {
 		return ""
 	}
 	if strings.HasSuffix(data[0], "/pubhtml") {
-		return "https://docs.google.com/spreadsheets/" + data[0] + " gid=" + data[1] + " range=" + data[2] + data[3]
+		return "https://docs.google.com/spreadsheets/" + data[0] + " gid=" + data[1] + " range=" + data[2] + data[3] + ":" + data[4] + data[5]
 	}
-	return "https://docs.google.com/spreadsheets/" + data[0] + "/edit#gid=" + data[1] + "&range=" + data[2] + data[3]
+	return "https://docs.google.com/spreadsheets/" + data[0] + "/edit#gid=" + data[1] + "&range=" + data[2] + data[3] + ":" + data[4] + data[5]
 }
 
 func fetchTable(name string) string {

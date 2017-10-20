@@ -103,7 +103,7 @@ func calcHOffset(n *html.Node, col string) int {
 	return colToInt(col)
 }
 
-func extractCellValue(data string, gid string, row string, col string) (string, error) {
+func extractCellValue(data string, gid string, row1 string, col1 string, row2 string, col2 string) (string, error) {
 	defer func() {
 		recover()
 	}()
@@ -116,25 +116,40 @@ func extractCellValue(data string, gid string, row string, col string) (string, 
 	if g == nil {
 		return "", errors.New("Page " + gid + " does not exist")
 	}
-	x := calcVOffset(g, row)
-	if x < 0 {
-		return "", errors.New("Row " + row + " does not exist")
+	x1 := calcVOffset(g, row1)
+	if x1 < 0 {
+		return "", errors.New("Row " + row1 + " does not exist")
 	}
-	y := calcHOffset(g, col)
-	if y < 0 {
-		return "", errors.New("Col " + col + " does not exist")
+	y1 := calcHOffset(g, col1)
+	if y1 < 0 {
+		return "", errors.New("Col " + col1 + " does not exist")
+	}
+	x2 := calcVOffset(g, row2)
+	if x2 < 0 {
+		return "", errors.New("Row " + row2 + " does not exist")
+	}
+	y2 := calcHOffset(g, col2)
+	if y2 < 0 {
+		return "", errors.New("Col " + col2 + " does not exist")
+	}
+	if x1 > x2 {
+		x1, x2 = x2, x1
+	}
+	if y1 > y2 {
+		y1, y2 = y2, y1
 	}
 	cx, cy := 0, 0
-	busy := make([][]bool, x+1)
+	busy := make([][]bool, x2+1)
 	for i := range busy {
-		busy[i] = make([]bool, y+1)
+		busy[i] = make([]bool, y2+1)
 	}
+	result := ""
 	for tr := g.LastChild.FirstChild; tr != nil; tr = tr.NextSibling {
 		if getAttr(tr, "style") == "" {
 			continue
 		}
 		cx++
-		if cx > x {
+		if cx > x2 {
 			break
 		}
 		cy = 0
@@ -143,14 +158,14 @@ func extractCellValue(data string, gid string, row string, col string) (string, 
 				continue
 			}
 			cy++
-			for cy <= y && busy[cx][cy] {
+			for cy <= y2 && busy[cx][cy] {
 				cy++
 			}
-			if cy > y {
+			if cy > y2 {
 				break
 			}
-			if cx == x && cy == y {
-				return getText(td), nil
+			if x1 <= cx && cx <= x2 && y1 <= cy && cy <= y2 {
+				result += getText(td) + "\t"
 			}
 			colspan, rowspan := getAttr(td, "colspan"), getAttr(td, "rowspan")
 			if colspan != "" || rowspan != "" {
@@ -162,13 +177,14 @@ func extractCellValue(data string, gid string, row string, col string) (string, 
 				}
 				dx, _ := strconv.ParseInt(rowspan, 10, 64)
 				dy, _ := strconv.ParseInt(colspan, 10, 64)
-				for ix := cx; ix < cx+int(dx) && ix <= x; ix++ {
-					for iy := cy; iy < cy+int(dy) && iy <= y; iy++ {
+				for ix := cx; ix < cx+int(dx) && ix <= x2; ix++ {
+					for iy := cy; iy < cy+int(dy) && iy <= y2; iy++ {
 						busy[ix][iy] = true
 					}
 				}
 			}
 		}
 	}
-	return "", nil
+	result = strings.Trim(result, "\t")
+	return result, nil
 }

@@ -23,7 +23,7 @@ func monitor() {
 			pairs := recordList(u)
 			for _, v := range pairs {
 				data := parseList(v.Value)
-				cellval, err := extractCellValue(getTable(data[0]), data[1], data[3], data[2])
+				cellval, err := cellValueByRecord(data)
 				if err != nil {
 					println(err.Error())
 					cellval = ""
