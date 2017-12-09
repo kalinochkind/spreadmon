@@ -37,11 +37,14 @@ func buildEditURL(data []string) string {
 	if len(data) != DATA_LENGTH {
 		return ""
 	}
+	if data[2] == "tabs" {
+		if strings.HasSuffix(data[0], "/pubhtml") {
+			return "https://docs.google.com/spreadsheets/" + data[0] + ", tabs"
+		}
+		return "https://docs.google.com/spreadsheets/" + data[0] + "/edit, tabs"
+	}
 	if strings.HasSuffix(data[0], "/pubhtml") {
 		return "https://docs.google.com/spreadsheets/" + data[0] + " gid=" + data[1] + " range=" + data[2] + data[3] + ":" + data[4] + data[5]
-	}
-	if data[2] == "tabs" {
-		return "https://docs.google.com/spreadsheets/" + data[0] + "/edit, tabs"
 	}
 	return "https://docs.google.com/spreadsheets/" + data[0] + "/edit#gid=" + data[1] + "&range=" + data[2] + data[3] + ":" + data[4] + data[5]
 }
