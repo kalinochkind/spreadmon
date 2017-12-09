@@ -63,6 +63,15 @@ func getPageList(data string) (names []string, gids []string) {
 	return
 }
 
+func getPageListString(data string) *string {
+	names, _ := getPageList(data)
+	if names == nil {
+		return nil
+	}
+	res := strings.Join(names, ", ")
+	return &res
+}
+
 func getText(n *html.Node) string {
 	if n.Type == html.TextNode {
 		return n.Data

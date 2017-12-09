@@ -10,6 +10,7 @@ import (
 var state = make(map[int64]map[string]string)
 var MENU_KB = []string{"Add a cell", "List all cells"}
 
+const TABS_STR = "Monitor tabs"
 const HELP_STR = `You can add cells or cell ranges here. I will check them about once a minute, and if the value changes, I will notify you.
 `
 
@@ -79,12 +80,16 @@ func cellValueByRecord(record []string) (*string, error) {
 	if val == nil {
 		return nil, nil
 	}
+	if record[2] == "tabs" {
+		return getPageListString(*val), nil
+	}
 	res, err := extractCellValue(*val, record[1], record[3], record[2], record[5], record[4])
 	return &res, err
 }
 
 func sendPageList(uid int64, name string) {
 	table := getTable(name)
+
 	if table == nil {
 		state[uid]["name"] = "add"
 		messageChan <- makeMessage(uid, "Could not fetch the table, try again", []string{"Cancel"})
@@ -102,14 +107,14 @@ func sendPageList(uid int64, name string) {
 		cdata, _ := json.Marshal(data)
 		state[uid]["record"] = string(cdata)
 		state[uid]["name"] = "add-cell"
-		messageChan <- makeMessage(uid, "What cell do you want to monitor?\nExamples: A1, A1:B5", []string{"Cancel"})
+		messageChan <- makeMessage(uid, "What cell do you want to monitor?\nExamples: A1, A1:B5", []string{"Cancel", TABS_STR})
 		return
 	}
 	msg := "Send the number of the tab. Available tabs:\n"
 	for i, name := range names {
 		msg += "\n" + strconv.Itoa(i + 1) + ". " + name
 	}
-	messageChan <- makeMessage(uid, msg, []string{"Cancel"})
+	messageChan <- makeMessage(uid, msg, []string{"Cancel", TABS_STR})
 }
 
 func handle(id int64, message string) *tgbotapi.MessageConfig {
@@ -162,30 +167,39 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 		ustate["name"] = "add-name"
 		return makeMessage(id, "Enter the name for this cell", []string{"Cancel"})
 	case "add-page":
-		message = strings.Trim(message, " ")
-		number, err := strconv.ParseInt(message, 10, 64)
-		if err != nil || number < 0 {
-			return makeMessage(id, "Bad number, try again", []string{"Cancel"})
+		if message != TABS_STR {
+			message = strings.Trim(message, " ")
+			number, err := strconv.ParseInt(message, 10, 64)
+			if err != nil || number < 0 {
+				return makeMessage(id, "Bad number, try again", []string{"Cancel"})
+			}
+			data := parseList(ustate["record"])
+			table := getTable(data[0])
+			if table == nil {
+				return makeMessage(id, "Could not fetch table, try again", []string{"Cancel"})
+			}
+			_, gids := getPageList(*table)
+			if number > int64(len(gids)) {
+				return makeMessage(id, "Bad number, try again", []string{"Cancel"})
+			}
+			data[1] = gids[number-1]
+			cdata, _ := json.Marshal(data)
+			ustate["record"] = string(cdata)
+			ustate["name"] = "add-cell"
+			return makeMessage(id, "What cell do you want to monitor?\nExamples: A1, A1:B5", []string{"Cancel", TABS_STR})
 		}
-		data := parseList(ustate["record"])
-		table := getTable(data[0])
-		if table == nil {
-			return makeMessage(id, "Could not fetch table, try again", []string{"Cancel"})
-		}
-		_, gids := getPageList(*table)
-		if number > int64(len(gids)) {
-			return makeMessage(id, "Bad number, try again", []string{"Cancel"})
-		}
-		data[1] = gids[number - 1]
-		cdata, _ := json.Marshal(data)
-		ustate["record"] = string(cdata)
-		ustate["name"] = "add-cell"
-		return makeMessage(id, "What cell do you want to monitor?\nExamples: A1, A1:B5", []string{"Cancel"})
+		fallthrough
 	case "add-cell":
-		message = strings.ToUpper(strings.Trim(message, " "))
-		parsed := CELL_RE.FindStringSubmatch(message)
-		if len(parsed) != 5 {
-			return makeMessage(id, "Invalid cell, try again.", []string{"Cancel"})
+		var parsed []string
+		if message == TABS_STR {
+			parsed = make([]string, 0)
+			parsed = append(parsed, "", "tabs", "", "", "")
+		} else {
+			message = strings.ToUpper(strings.Trim(message, " "))
+			parsed = CELL_RE.FindStringSubmatch(message)
+			if len(parsed) != 5 {
+				return makeMessage(id, "Invalid cell, try again.", []string{"Cancel"})
+			}
 		}
 		data := parseList(ustate["record"])
 		data[2] = parsed[1]
@@ -251,12 +265,18 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 		if plist[4] != plist[2] || plist[5] != plist[3] {
 			currentCell += ":" + plist[4] + plist[5]
 		}
-		return makeMessage(id, "What cell do you want to monitor?\nCurrently: " + currentCell, []string{"Cancel"})
+		return makeMessage(id, "What cell do you want to monitor?\nCurrently: " + currentCell, []string{"Cancel", TABS_STR})
 	case "edit-cell":
-		message = strings.ToUpper(strings.Trim(message, " "))
-		parsed := CELL_RE.FindStringSubmatch(message)
-		if len(parsed) != 5 {
-			return makeMessage(id, "Invalid cell, try again.", []string{"Cancel"})
+		var parsed []string
+		if message == TABS_STR {
+			parsed = make([]string, 0)
+			parsed = append(parsed, "", "tabs", "", "", "")
+		} else {
+			message = strings.ToUpper(strings.Trim(message, " "))
+			parsed = CELL_RE.FindStringSubmatch(message)
+			if len(parsed) != 5 {
+				return makeMessage(id, "Invalid cell, try again.", []string{"Cancel"})
+			}
 		}
 		data := parseList(ustate["record"])
 		data[2] = parsed[1]
