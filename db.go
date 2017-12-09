@@ -70,16 +70,18 @@ var tableCache = make(map[string]string)
 
 var tableLock = sync.Mutex{}
 
-func getTable(name string) string {
+func getTable(name string) *string {
 	tableLock.Lock()
 	defer tableLock.Unlock()
 	data, ok := tableCache[name]
 	if ok {
-		return data
+		return &data
 	}
-	data = fetchTable(name)
-	tableCache[name] = data
-	return data
+	pdata := fetchTable(name)
+	if pdata != nil {
+		tableCache[name] = *pdata
+	}
+	return pdata
 }
 
 func clearTableCache() {

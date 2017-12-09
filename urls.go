@@ -43,7 +43,7 @@ func buildEditURL(data []string) string {
 	return "https://docs.google.com/spreadsheets/" + data[0] + "/edit#gid=" + data[1] + "&range=" + data[2] + data[3] + ":" + data[4] + data[5]
 }
 
-func fetchTable(name string) string {
+func fetchTable(name string) *string {
 	var url string;
 	if strings.HasSuffix(name, "/pubhtml") {
 		url = "https://docs.google.com/spreadsheets/" + name
@@ -53,9 +53,10 @@ func fetchTable(name string) string {
 	resp, err := http.Get(url)
 	if err != nil || resp.StatusCode != 200 {
 		log.Println("Unable to fetch " + name)
-		return ""
+		return nil
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
-	return string(body)
+	result := string(body)
+	return &result
 }

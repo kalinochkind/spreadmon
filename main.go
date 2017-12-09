@@ -26,12 +26,16 @@ func monitor() {
 				cellval, err := cellValueByRecord(data)
 				if err != nil {
 					println(err.Error())
-					cellval = ""
+					continue
 				}
-				old := updateCellVal(u, v.Name, cellval)
+				if cellval == nil {
+					println("Could not fetch value");
+					continue;
+				}
+				old := updateCellVal(u, v.Name, *cellval)
 				println(v.Name, cellval)
-				if old != cellval {
-					notifyUser(u, fmt.Sprintf("The cell %s has changed!\n'%s' -> '%s'", v.Name, old, cellval))
+				if old != *cellval {
+					notifyUser(u, fmt.Sprintf("The cell %s has changed!\n'%s' -> '%s'", v.Name, old, *cellval))
 				}
 			}
 		}

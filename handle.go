@@ -66,20 +66,31 @@ func formatRecordList(uid int64, pairs StringPairs) string {
 }
 
 func sendInitialValue(uid int64, record []string) {
-	var val string
+	val := ""
 	cellval, err := cellValueByRecord(record)
-	if err == nil {
-		val = "\nInitial value: '" + cellval + "'"
+	if err == nil && cellval != nil {
+		val = "\nInitial value: '" + *cellval + "'"
 	}
 	messageChan <- makeMessage(uid, "New cell added!"+val, MENU_KB)
 }
 
-func cellValueByRecord(record []string) (string, error) {
-	return extractCellValue(getTable(record[0]), record[1], record[3], record[2], record[5], record[4])
+func cellValueByRecord(record []string) (*string, error) {
+	val := getTable(record[0])
+	if val == nil {
+		return nil, nil
+	}
+	res, err := extractCellValue(*val, record[1], record[3], record[2], record[5], record[4])
+	return &res, err
 }
 
 func sendPageList(uid int64, name string) {
-	names, gids := getPageList(getTable(name))
+	table := getTable(name)
+	if table == nil {
+		state[uid]["name"] = "add"
+		messageChan <- makeMessage(uid, "Could not fetch the table, try again", []string{"Cancel"})
+		return
+	}
+	names, gids := getPageList(*table)
 	if names == nil {
 		state[uid]["name"] = "add"
 		messageChan <- makeMessage(uid, "Invalid table, try again", []string{"Cancel"})
@@ -157,7 +168,11 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 			return makeMessage(id, "Bad number, try again", []string{"Cancel"})
 		}
 		data := parseList(ustate["record"])
-		_, gids := getPageList(getTable(data[0]))
+		table := getTable(data[0])
+		if table == nil {
+			return makeMessage(id, "Could not fetch table, try again", []string{"Cancel"})
+		}
+		_, gids := getPageList(*table)
 		if number > int64(len(gids)) {
 			return makeMessage(id, "Bad number, try again", []string{"Cancel"})
 		}
