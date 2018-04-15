@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 	"fmt"
+	"html"
 )
 
 var messageChan = make(chan *tgbotapi.MessageConfig, 5)
@@ -12,6 +13,8 @@ var callbackChan = make(chan tgbotapi.CallbackConfig, 5)
 
 func notifyUser(id int64, message string) {
 	m := tgbotapi.NewMessage(id, message)
+	m.ParseMode = "html"
+	m.DisableWebPagePreview = true
 	messageChan <- &m
 }
 
@@ -34,7 +37,8 @@ func monitor() {
 				}
 				old := updateCellVal(u, v.Name, *cellval)
 				if old != *cellval {
-					notifyUser(u, fmt.Sprintf("The cell %s has changed!\n'%s' -> '%s'", v.Name, old, *cellval))
+					notifyUser(u, fmt.Sprintf("The cell <a href=\"%s\">%s</a> has changed!\n'%s' -> '%s'",
+						buildEditURL(data), html.EscapeString(v.Name), html.EscapeString(old), html.EscapeString(*cellval)))
 				}
 			}
 		}
