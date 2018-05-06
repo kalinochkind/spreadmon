@@ -1,10 +1,11 @@
 package main
 
 import (
-	"strings"
-	"strconv"
-	"golang.org/x/net/html"
 	"errors"
+	"strconv"
+	"strings"
+
+	"golang.org/x/net/html"
 )
 
 func colToInt(col string) int {
@@ -55,7 +56,7 @@ func getPageList(data string) (names []string, gids []string) {
 		if i.Type == html.ElementNode && i.Data == "li" {
 			val := getAttr(i, "id")
 			if strings.HasPrefix(val, "sheet-button-") {
-				gids = append(gids, strings.Split(val,"-")[2])
+				gids = append(gids, strings.Split(val, "-")[2])
 				names = append(names, i.FirstChild.FirstChild.Data)
 			}
 		}
@@ -91,7 +92,7 @@ func calcVOffset(n *html.Node, row string) int {
 		}
 		res++
 		if tr.FirstChild.FirstChild.FirstChild.Data == row {
-			return res;
+			return res
 		}
 	}
 	t, _ := strconv.ParseInt(row, 10, 64)

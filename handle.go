@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/go-telegram-bot-api/telegram-bot-api"
-	"strings"
 	"encoding/json"
 	"strconv"
+	"strings"
+
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 var state = make(map[int64]map[string]string)
@@ -111,8 +112,8 @@ func sendPageList(uid int64, name string) {
 		return
 	}
 	msg := "Send the number of the tab. Available tabs:\n"
-	for i, name := range names {
-		msg += "\n" + strconv.Itoa(i + 1) + ". " + name
+	for i, tabname := range names {
+		msg += "\n" + strconv.Itoa(i+1) + ". " + tabname
 	}
 	messageChan <- makeMessage(uid, msg, []string{"Cancel", TABS_STR})
 }
@@ -140,7 +141,7 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 		switch message {
 		case MENU_KB[0]:
 			ustate["name"] = "add"
-			return makeMessage(id, "Enter the cell URL. You can get it by right-clicking the cell and copying the link to it. " +
+			return makeMessage(id, "Enter the cell URL. You can get it by right-clicking the cell and copying the link to it. "+
 				"You may also just paste the table URL here and select the cell later.", []string{"Cancel"})
 		case MENU_KB[1]:
 			pairs := recordList(id)
@@ -265,7 +266,7 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 		if plist[4] != plist[2] || plist[5] != plist[3] {
 			currentCell += ":" + plist[4] + plist[5]
 		}
-		return makeMessage(id, "What cell do you want to monitor?\nCurrently: " + currentCell, []string{"Cancel", TABS_STR})
+		return makeMessage(id, "What cell do you want to monitor?\nCurrently: "+currentCell, []string{"Cancel", TABS_STR})
 	case "edit-cell":
 		var parsed []string
 		if message == TABS_STR {
@@ -313,7 +314,7 @@ func handleCallback(id int64, data string) *tgbotapi.MessageConfig {
 			return makeMessage(id, "You have no cells yet", MENU_KB)
 		}
 		ustate["name"] = "delete"
-		return makeMessage(id, "Which cells do you want to delete?\n" +
+		return makeMessage(id, "Which cells do you want to delete?\n"+
 			"Enter their numbers separated by commas or spaces", []string{"Cancel"})
 	}
 	if data == "Edit" {

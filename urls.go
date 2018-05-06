@@ -1,10 +1,10 @@
 package main
 
 import (
-	"regexp"
-	"net/http"
-	"log"
 	"io/ioutil"
+	"log"
+	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -50,7 +50,7 @@ func buildEditURL(data []string) string {
 }
 
 func fetchTable(name string) *string {
-	var url string;
+	var url string
 	if strings.HasSuffix(name, "/pubhtml") {
 		url = "https://docs.google.com/spreadsheets/" + name
 	} else {

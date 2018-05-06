@@ -1,18 +1,19 @@
 package main
 
 import (
-	"github.com/go-redis/redis"
-	"strconv"
 	"encoding/json"
-	"sync"
 	"log"
 	"sort"
+	"strconv"
+	"sync"
+
+	"github.com/go-redis/redis"
 )
 
 var database *redis.Client
 
 type StringPair struct {
-	Name string
+	Name  string
 	Value string
 }
 

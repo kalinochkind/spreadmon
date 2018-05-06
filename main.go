@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/go-telegram-bot-api/telegram-bot-api"
-	"log"
-	"time"
 	"fmt"
 	"html"
+	"log"
+	"time"
+
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 var messageChan = make(chan *tgbotapi.MessageConfig, 5)
@@ -19,7 +20,7 @@ func notifyUser(id int64, message string) {
 }
 
 func monitor() {
-	for _ = range time.Tick(30*time.Second) {
+	for range time.Tick(30 * time.Second) {
 		ul := userList()
 		clearTableCache()
 		for _, u := range ul {
@@ -32,8 +33,8 @@ func monitor() {
 					continue
 				}
 				if cellval == nil {
-					println("Could not fetch value");
-					continue;
+					println("Could not fetch value")
+					continue
 				}
 				old := updateCellVal(u, v.Name, *cellval)
 				if old != *cellval {
@@ -46,7 +47,7 @@ func monitor() {
 }
 
 func sender(bot *tgbotapi.BotAPI) {
-	for ;; {
+	for ; ; {
 		select {
 		case m := <-messageChan:
 			if m != nil {
