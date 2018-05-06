@@ -55,12 +55,12 @@ func formatRecordList(uid int64, pairs StringPairs) string {
 	if len(pairs) == 0 {
 		return "You have no cells yet"
 	}
-	res := "Your cells:\n\n"
+	res := ""
 	for i, v := range pairs {
 		res += strconv.Itoa(i+1) + ". " + v.Name
 		val, ok := getCellVal(uid, v.Name)
 		if ok {
-			res += " (value: '" + val + "')"
+			res += " ('" + val + "')"
 		}
 		res += "\n" + buildEditURL(parseList(v.Value)) + "\n\n"
 	}

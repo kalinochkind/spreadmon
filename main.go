@@ -38,7 +38,7 @@ func monitor() {
 				}
 				old := updateCellVal(u, v.Name, *cellval)
 				if old != *cellval {
-					notifyUser(u, fmt.Sprintf("The cell <a href=\"%s\">%s</a> has changed!\n'%s' -> '%s'",
+					notifyUser(u, fmt.Sprintf("<a href=\"%s\">%s</a> changed!\n'%s' -> '%s'",
 						buildEditURL(data), html.EscapeString(v.Name), html.EscapeString(old), html.EscapeString(*cellval)))
 				}
 			}
