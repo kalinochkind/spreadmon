@@ -9,6 +9,9 @@ import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
+const CHECK_INTERVAL = 30
+const MESSAGE_INTERVAL = 300
+
 var messageChan = make(chan *tgbotapi.MessageConfig, 5)
 var callbackChan = make(chan tgbotapi.CallbackConfig, 5)
 
@@ -20,7 +23,7 @@ func notifyUser(id int64, message string) {
 }
 
 func monitor() {
-	for range time.Tick(30 * time.Second) {
+	for range time.Tick(CHECK_INTERVAL * time.Second) {
 		ul := userList()
 		clearTableCache()
 		for _, u := range ul {
@@ -38,8 +41,12 @@ func monitor() {
 				}
 				old := updateCellVal(u, v.Name, *cellval)
 				if old != *cellval {
-					notifyUser(u, fmt.Sprintf("<a href=\"%s\">%s</a> changed!\n'%s' -> '%s'",
-						buildEditURL(data), html.EscapeString(v.Name), html.EscapeString(old), html.EscapeString(*cellval)))
+					if getChangeTimeDiff(u, v.Name) > MESSAGE_INTERVAL {
+						notifyUser(u, fmt.Sprintf("<a href=\"%s\">%s</a> changed!\n'%s' -> '%s'",
+							buildEditURL(data), html.EscapeString(v.Name),
+							html.EscapeString(old), html.EscapeString(*cellval)))
+						updateChangeTime(u, v.Name)
+					}
 				}
 			}
 		}

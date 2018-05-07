@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"math"
 	"sort"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/go-redis/redis"
 )
@@ -65,6 +67,25 @@ func recordList(uid int64) StringPairs {
 
 func deleteRecord(uid int64, name string) {
 	database.HDel("records/"+strconv.FormatInt(uid, 10), name)
+}
+
+func getChangeTimeDiff(uid int64, name string) int64 {
+	res := database.HGet("changetime/" + strconv.FormatInt(uid, 10), name)
+	val, err := res.Int64()
+	if err == nil {
+		now := time.Now().Unix()
+		return now - val
+	}
+	return math.MaxInt64
+}
+
+func updateChangeTime(uid int64, name string) {
+	val := time.Now().Unix()
+	database.HSet("changetime/" + strconv.FormatInt(uid, 10), name, val)
+}
+
+func resetChangeTime(uid int64, name string) {
+	database.HDel("changetime/" + strconv.FormatInt(uid, 10), name)
 }
 
 var tableCache = make(map[string]string)

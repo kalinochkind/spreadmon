@@ -248,6 +248,7 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 		for _, num := range ints {
 			deleteRecord(id, pairs[num-1].Name)
 			deleteCellVal(id, pairs[num-1].Name)
+			resetChangeTime(id, pairs[num-1].Name)
 		}
 		ustate["name"] = ""
 		return makeMessage(id, "Deleted!", MENU_KB)
@@ -294,6 +295,7 @@ func handle(id int64, message string) *tgbotapi.MessageConfig {
 		deleteCellVal(id, ustate["record-name"])
 		go sendInitialValue(id, data)
 		deleteRecord(id, ustate["record-name"])
+		resetChangeTime(id, ustate["record-name"])
 		addRecord(id, ustate["record-name"], string(cdata))
 		ustate["name"] = ""
 		return nil
