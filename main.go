@@ -29,6 +29,9 @@ func monitor() {
 		for _, u := range ul {
 			pairs := recordList(u)
 			for _, v := range pairs {
+				if getChangeTimeDiff(u, v.Name) < MESSAGE_INTERVAL {
+					continue
+				}
 				data := parseList(v.Value)
 				cellval, err := cellValueByRecord(data)
 				if err != nil {
@@ -41,12 +44,10 @@ func monitor() {
 				}
 				old := updateCellVal(u, v.Name, *cellval)
 				if old != *cellval {
-					if getChangeTimeDiff(u, v.Name) > MESSAGE_INTERVAL {
-						notifyUser(u, fmt.Sprintf("<a href=\"%s\">%s</a> changed!\n'%s' -> '%s'",
-							buildEditURL(data), html.EscapeString(v.Name),
-							html.EscapeString(old), html.EscapeString(*cellval)))
-						updateChangeTime(u, v.Name)
-					}
+					notifyUser(u, fmt.Sprintf("<a href=\"%s\">%s</a> changed!\n'%s' -> '%s'",
+						buildEditURL(data), html.EscapeString(v.Name),
+						html.EscapeString(old), html.EscapeString(*cellval)))
+					updateChangeTime(u, v.Name)
 				}
 			}
 		}
